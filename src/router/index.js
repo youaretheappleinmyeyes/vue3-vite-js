@@ -5,9 +5,30 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
-      name: 'home',
-      component: HomeView,
+      path:'/',
+      redirect:'/main',
+    },
+    {
+      path:'/main',
+      name:'main',
+      component:()=>import('../views/main/index.vue'),
+      children:[
+        {
+          path: '/home',
+          name: 'home',
+          component:()=>import('../views/home/index.vue')
+        },
+        {
+          path: '/myResume',
+          name: 'myResume',
+          component:()=>import('../views/myResume/index.vue')
+        }
+      ]
+    },
+    {
+      path: '/homev',
+      name: 'homev',
+      component: ()=>import('../views/HomeView.vue'),
     },
     {
       path: '/about',
@@ -17,6 +38,11 @@ const router = createRouter({
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
     },
+    {
+      path: '/:o+',
+      name: '*',
+      redirect: '/'
+    }
   ],
 })
 

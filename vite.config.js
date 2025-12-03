@@ -46,7 +46,7 @@ export default defineConfig(({command,mode})=>{
     // console.log('Vite 配置：当前是生产环境')
     _private = {
       build:{
-        minify: 'terser', // 切换到 terser 压缩器（默认是 esbuild）
+        // minify: 'terser', // 切换到 terser 压缩器（默认是 esbuild）
         terserOptions: {
           compress: {
             drop_console: true, // 移除所有 console.*

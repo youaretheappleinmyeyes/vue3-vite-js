@@ -1,5 +1,26 @@
+/*渐变色*/
+.presrtRoot {
+  --lgc-0: linear-gradient(to right, #98be2c, #ff9c05);
+  --lgc-1: linear-gradient(to right, #98be2c, #2ca952);
+  --lgc-2: linear-gradient(to right, #98be2c, #00b168);
+  --lgc-3: linear-gradient(to right, #98be2c, #255c8e);
+  --lgc-4: linear-gradient(to right, #98be2c, #fbf9c9);
+  --lgc-5: linear-gradient(to right, #98be2c, #203933);
+  --lgc-6: linear-gradient(to right, #98be2c, #2ca9a5);
+  --lgc-7: linear-gradient(to right, #98be2c, #216b3f);
+  --lgc-8: linear-gradient(to right, #98be2c, #fea9a2);
+  --lgc-9: linear-gradient(to right, #98be2c, #ff9c05);
+  --lgc-10: linear-gradient(to right, #4435aa, #d9d3f7);
+  --lgc-11: linear-gradient(to right, #f85414, #d3c5fa);
+  --lgc-12: linear-gradient(to right, #98be2c, #ff9c05);
+  --lgc-13: linear-gradient(to right, #2ad4af, #ece8e5);
+}
+
+@media screen {
+  
+}
 /*渐变边框跑马灯样式*/
-@borderColorGradient-radius:8px;
+@borderColorGradient-radius: 8px;
 .border-color-gradient {
   position: relative;
   width: 300px;
@@ -17,11 +38,9 @@
   bottom: 0;
   border: 4px solid transparent;
   border-radius: @borderColorGradient-radius;
-  background: linear-gradient(
-    45deg,
-    #ff0000, #ff9900, #33cc33,
-    #3399ff, #cc33ff, #ff0000
-  ) border-box;
+  background: linear-gradient(45deg,
+  #ff0000, #ff9900, #33cc33,
+  #3399ff, #cc33ff, #ff0000) border-box;
 
   mask-image: linear-gradient(#fff 0 0), linear-gradient(#fff 0 0);
   mask-clip: content-box, border-box; /* 第二个遮罩默认用 border-box */
@@ -29,11 +48,11 @@
   mask-size: auto, auto; /* 默认适配遮罩源尺寸 */
   mask-repeat: repeat, repeat; /* 默认重复（但这里是全屏渐变，重复无效果） */
 
-//-webkit-mask-image: linear-gradient(#fff 0), linear-gradient(#fff 0);
-//-webkit-mask-clip: content-box, border-box; /* 第二个遮罩默认用 border-box */
-//-webkit-mask-position: center, center; /* 默认居中 */
-//-webkit-mask-size: auto, auto; /* 默认适配遮罩源尺寸 */
-//-webkit-mask-repeat: repeat, repeat; /* 默认重复（但这里是全屏渐变，重复无效果） */
+  //-webkit-mask-image: linear-gradient(#fff 0), linear-gradient(#fff 0);
+  //-webkit-mask-clip: content-box, border-box; /* 第二个遮罩默认用 border-box */
+  //-webkit-mask-position: center, center; /* 默认居中 */
+  //-webkit-mask-size: auto, auto; /* 默认适配遮罩源尺寸 */
+  //-webkit-mask-repeat: repeat, repeat; /* 默认重复（但这里是全屏渐变，重复无效果） */
 
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -53,4 +72,5 @@
     background-position: 100% 50%;
   }
 }
+
 /* --END-- 渐变边框跑马灯样式*/

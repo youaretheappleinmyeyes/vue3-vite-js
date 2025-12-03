@@ -20,3 +20,19 @@ export function useMouse() {
   // 通过返回值暴露所管理的状态
   return { x, y }
 }
+
+import $J from 'jquery';
+export function setFontSize() {
+  let window_width = window.innerWidth;
+  let font_size = parseFloat((window_width / 3.93).toString());
+  // console.log(font_size);
+  $J('html').css('font-size', font_size);
+}
+
+//vue3 跳转事件
+// import {useRouter} from "vue-router";
+// const route = useRouter()
+import router from '@/router/index.js'
+export const goViewEvent = ({name,params,query})=>{
+  router.push({name, params, query})
+}

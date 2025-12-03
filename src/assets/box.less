@@ -1,0 +1,169 @@
+body{
+  font-size: 0.14rem;
+}
+
+:root{
+}
+/* 设置滚动条的样式 */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+/* 滚动槽 */
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset006pxrgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+}
+
+/* 滚动条滑块 */
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0);
+  -webkit-box-shadow: inset006pxrgba(0, 0, 0, 0.5);
+}
+
+//容器属性 横向布局 垂直对齐方式 用于弹性布局的 容器
+//横向布局 上 中 下  文本居中
+.align_start {
+  align-items: flex-start;
+}
+
+.align_end {
+  align-items: flex-end;
+}
+
+.align_center {
+  align-items: center;
+}
+
+.align_stretch {
+  align-items: stretch;
+}
+
+//容器属性 横向 模块的分布
+.jus_start {
+  justify-content: flex-start;
+}
+
+.jus_end {
+  justify-content: flex-end;
+}
+
+.jus_center {
+  justify-content: center;
+}
+
+.jus_between {
+  justify-content: space-between;
+
+}
+
+.jus_around { //模块平分
+  justify-content: space-around;
+}
+
+//项目属性
+.flexItemA {
+  align-self: auto;
+}
+
+.flexItemF {
+  align-self: flex-start;
+}
+
+.flexItemE {
+  align-self: flex-end;
+}
+
+.flexItemC {
+  align-self: center;
+}
+
+.flexItemB {
+  align-self: baseline;
+}
+
+.flexItemS {
+  align-self: stretch;
+}
+
+.box_col { //纵向
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  .box_col_100 {
+    flex: 1;
+  }
+  .box_col_auto {
+    flex: 1;
+    overflow: auto!important;
+  }
+  .box_col_autoY {
+    flex: 1;
+    overflow-y: auto!important;
+    overflow-x: hidden;
+  }
+  .box_col_autoX {
+    flex: 1;
+    overflow-x: auto!important;
+    overflow-y: hidden;
+  }
+}
+
+.box_row { //横向
+  //height: 100%;
+  display: flex;
+  flex-direction: row;
+  .box_row_100 {
+    flex: 1;
+  }
+  .box_row_200 {
+    flex: 2;
+  }
+  .box_row_300 {
+    flex: 3;
+  }
+  .box_row_1auto {
+    flex: 1;
+    overflow: auto!important;
+  }
+  .box_row_autoX {
+    flex: 1;
+    overflow-x: auto!important;
+    overflow-y: hidden;
+  }
+  .box_row_200 {
+    flex: 2;
+  }
+  .box_row_2auto {
+    flex: 2;
+    overflow: auto!important;
+  }
+  .box_row_3auto {
+    flex: 3;
+    overflow: auto!important;
+  }
+  .box_row_4auto {
+    flex: 4;
+    overflow: auto!important;
+  }
+  .box_row_5auto {
+    flex: 5;
+    overflow: auto!important;
+  }
+}
+
+.box_row_z { //横向布局禁止换行
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: 100%;
+  overflow-x: auto!important;
+}
+
+.box_row_list { //横向布局自动换行
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
