@@ -34,5 +34,5 @@ export function setFontSize() {
 // const route = useRouter()
 import router from '@/router/index.js'
 export const goViewEvent = ({name,params,query})=>{
-  router.push({name, params, query})
+  router.push({name, params, query});
 }
