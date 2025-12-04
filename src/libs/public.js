@@ -29,9 +29,7 @@ export function setFontSize() {
   $J('html').css('font-size', font_size);
 }
 
-//vue3 跳转事件
-// import {useRouter} from "vue-router";
-// const route = useRouter()
+//vue 跳转事件
 import router from '@/router/index.js'
 export const goViewEvent = ({name,params,query})=>{
   router.push({name, params, query});
