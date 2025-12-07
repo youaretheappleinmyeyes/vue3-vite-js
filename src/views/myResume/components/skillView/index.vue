@@ -1,6 +1,10 @@
 <!--技术栈-->
 <template>
   <div class="SkillView">
+    <!-- 水平滚动彩色条 -->
+    <div class="color-scroll-horizontal">
+      <div class="color-strip-horizontal"></div>
+    </div>
     <template v-for="(gt,gi) in groupList" :key="gt.lab+gi.type">
       <div class="SkillTit">
         {{ gt.lab }}
@@ -15,7 +19,13 @@
   </div>
 </template>
 <script setup>
-import {antImg,vueImg} from "@/assets/skillFile/exportSkillFile.js";
+import {
+  antImg, baidumapImg,
+  elementImg, githubImg, highchartsImg, iconfontImg,
+  iviewImg, lottiefilesImg, mintImg, nativeBaseImg, npmImg,
+  reactImg, uViewImg, vantImg,
+  vueImg
+} from "@/assets/skillFile/exportSkillFile.js";
 
 const groupList = [
   {
@@ -38,77 +48,77 @@ const uiList = [
   }, {
     type: "1",
     name: "React",
-    //logo: ()=>await import('@/assets/skillFile/react.png'),
+    logo: reactImg,
     link: "https://zh-hans.react.dev/"
   }, {
     type: "2",
     name: "Element UI",
-    //logo: ()=>await import('@/assets/skillFile/element.png'),
+    logo: elementImg,
     link: "https://element.eleme.io/#/zh-CN"
   }, {
     type: "2",
     name: "View Design",
-    //logo: ()=>await import('@/assets/skillFile/iview.svg'),
+    logo: iviewImg,
     link: "https://www.iviewui.com/"
   }, {
     type: "2",
     name: "NativeBase",
-    //logo: ()=>await import('@/assets/skillFile/NativeBase.png'),
+    logo: nativeBaseImg,
     link: "https://nativebase.io/"
   }, {
     type: "2",
     name: "Ant Design",
-    //logo: ()=>await import('@/assets/skillFile/ant.svg'),
+    logo: antImg,
     link: "https://ant-design.antgroup.com/index-cn"
   }, {
     type: "2",
     name: "Vant",
-    //logo: ()=>await import('@/assets/skillFile/vant.png'),
+    logo: vantImg,
     link: "https://vant-ui.github.io/vant/#/zh-CN"
   }, {
     type: "2",
     name: "uView",
-    //logo: ()=>await import('@/assets/skillFile/uView.png'),
+    logo: uViewImg,
     link: "https://uviewui.com/"
   }, {
     type: "2",
     name: "Mint UI",
-    //logo: ()=>await import('@/assets/skillFile/Mint.png'),
+    logo: mintImg,
     link: "https://mint-ui.github.io/#!/zh-cn"
   }, {
     type: "3",
     name: "Echarts",
-    //logo: ()=>await import('@/assets/skillFile/echarts.png'),
+    logo: elementImg,
     link: "https://echarts.apache.org/zh/index.html"
   }, {
     type: "3",
     name: "highcharts",
-    //logo: ()=>await import('@/assets/skillFile/highcharts.png'),
+    logo: highchartsImg,
     link: "https://highcharts.com.cn/"
   }, {
     type: "3",
     name: "百度地图",
-    //logo: ()=>await import('@/assets/skillFile/baidumap.png'),
+    logo: baidumapImg,
     link: "https://lbsyun.baidu.com/index.php?title=jspopularGL"
   }, {
     type: "3",
     name: "lottiefiles",
-    //logo: ()=>await import('@/assets/skillFile/lottiefiles.png'),
+    logo: lottiefilesImg,
     link: "https://lottiefiles.com/free-animations/gold"
   }, {
     type: "3",
     name: "iconfont",
-    //logo: ()=>await import('@/assets/skillFile/iconfont.png'),
+    logo: iconfontImg,
     link: "https://www.iconfont.cn/"
   }, {
     type: "3",
     name: "npm",
-    //logo: ()=>await import('@/assets/skillFile/npm.png'),
+    logo: npmImg,
     link: "https://www.npmjs.com/"
   }, {
     type: "3",
     name: "github",
-    //logo: ()=>await import('@/assets/skillFile/github.png'),
+    logo: githubImg,
     link: "https://github.com//"
 
   }
@@ -121,6 +131,7 @@ function giEvent(it) {
 
 
 <style lang="less" scoped>
+@import "@/assets/css/preset.less";
 .SkillView {
   .SkillTit {
     font-size: 0.16rem;

@@ -9,4 +9,18 @@
 
 
 export { default as antImg } from './ant.svg';
+export { default as baidumapImg } from './baidumap.png';
+export { default as echartsImg } from './echarts.png';
+export { default as elementImg } from './element.png';
+export { default as githubImg } from './github.png';
+export { default as highchartsImg } from './highcharts.png';
+export { default as iconfontImg } from './iconfont.png';
+export { default as iviewImg } from './iview.svg';
+export { default as lottiefilesImg} from './lottiefiles.png';
+export { default as mintImg} from './Mint.png';
+export { default as nativeBaseImg} from './NativeBase.png';
+export { default as npmImg} from './npm.png';
+export { default as reactImg} from './react.png';
+export { default as uViewImg} from './uView.png';
+export { default as vantImg} from './vant.png';
 export { default as vueImg } from './vue.png';
