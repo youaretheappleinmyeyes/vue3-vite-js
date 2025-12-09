@@ -20,7 +20,7 @@ function tabbarEvent(name){
   <template #header></template>
   <RouterView />
   <template #footer>
-    <van-tabbar v-model="active" @change="tabbarEvent">
+    <van-tabbar v-model="active" @change="tabbarEvent" :fixed="false">
       <van-tabbar-item name="home" icon="home-o">标签</van-tabbar-item>
       <van-tabbar-item name="myResume" icon="search">标签</van-tabbar-item>
     </van-tabbar>

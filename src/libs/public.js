@@ -1,5 +1,15 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
+// 加载静态 script 脚本文件
+export const loadScript = (src) =>
+  new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
 // 按照惯例，组合式函数名以“use”开头
 export function useMouse() {
   // 被组合式函数封装和管理的状态
@@ -20,7 +30,7 @@ export function useMouse() {
   // 通过返回值暴露所管理的状态
   return { x, y }
 }
-
+//设置顶层字体
 import $J from 'jquery';
 export function setFontSize() {
   let window_width = window.innerWidth;
