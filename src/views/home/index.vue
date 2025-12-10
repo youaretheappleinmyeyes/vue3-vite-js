@@ -1,11 +1,9 @@
 <script setup>
-import fundAggregation from '@/views/fundAggregation/index.vue'
 </script>
 
 <template>
 <div>
-  <fund-aggregation></fund-aggregation>
-
+pdf-echarts
 </div>
 </template>
 
