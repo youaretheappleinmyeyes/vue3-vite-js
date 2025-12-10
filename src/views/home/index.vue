@@ -1,11 +1,11 @@
 <script setup>
-import pdfView from "@/components/pdfView/index.vue"
+import fundAggregation from '@/views/fundAggregation/index.vue'
 </script>
 
 <template>
 <div>
-  homes
-  <pdf-view></pdf-view>
+  <fund-aggregation></fund-aggregation>
+
 </div>
 </template>
 

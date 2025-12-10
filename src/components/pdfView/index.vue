@@ -62,7 +62,6 @@ onMounted(async () => {
     // 国内CDN
     await loadScript('/pdf/pdf.min.js');
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.bootcdn.net/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    window.pdfjsLib.GlobalWorkerOptions.cMapUrl = 'https://cdn.bootcdn.net/ajax/libs/pdf.js/3.4.120/cmaps/';
     window.pdfjsLib.GlobalWorkerOptions.cMapPacked = true;
     pdfjsLib = window.pdfjsLib;
   } catch (err) {
