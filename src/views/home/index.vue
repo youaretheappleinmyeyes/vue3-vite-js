@@ -1,9 +1,12 @@
 <script setup>
+
+import Game2048 from "@/views/game/Game2048.vue";
 </script>
 
 <template>
 <div>
-pdf-echarts
+pdf-echarts-GuessNumber-
+  <game2048></game2048>
 </div>
 </template>
 

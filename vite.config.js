@@ -30,7 +30,8 @@ export default defineConfig(({command,mode})=>{
     // console.log('Vite 配置：当前是开发环境')
     _private = {
       server:{//开发环境
-        port:8080,
+        // port:8080,
+        host: '0.0.0.0', // 监听所有网络接口（包括局域网IP）
         proxy: {
           // 匹配所有以 /baidu-map-weather 开头的请求（自定义前缀，避免和其他接口冲突）
           '/baidu-weather': {
