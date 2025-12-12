@@ -10,157 +10,349 @@
       </div>
     </div>
 
-    <!-- 游戏主区域（优化：仅更新变化的单元格） -->
-    <div
-        class="game-container"
+    <!-- Canvas 游戏主区域 -->
+    <canvas
+        ref="gameCanvas"
+        class="game-canvas"
         @touchstart.passive="handleTouchStart"
-    @touchend="handleTouchEnd"
-    >
-    <div
-        v-for="(cell, index) in grid"
-        :key="index"
-        class="cell"
-        :data-index="index"
-    >
-      <div
-          v-if="cell !== 0"
-          class="tile"
-          :class="getTileClass(cell)"
-          :style="getTileStyle(index)"
-      >
-      {{ cell }}
-    </div>
-  </div>
-  </div>
+        @touchmove.passive="handleTouchMove"
+        @touchend="handleTouchEnd"
+        @touchcancel.passive="handleTouchCancel"
+    ></canvas>
 
-  <!-- 竖屏控制按钮（优化：防抖点击） -->
-  <div class="controls">
-    <button class="control-btn" @click="debouncedMove('left')">←</button>
-    <div class="vertical-controls">
-      <button class="control-btn" @click="debouncedMove('up')">↑</button>
-      <button class="control-btn" @click="debouncedMove('down')">↓</button>
+    <!-- 按键提示（桌面端显示） -->
+    <div class="key-hint" v-show="showKeyHint">
+      <p>方向键/WASD 控制移动 | R/回车 重置</p>
     </div>
-    <button class="control-btn" @click="debouncedMove('right')">→</button>
-  </div>
 
-  <!-- 游戏结束遮罩（优化：懒渲染） -->
-  <Teleport to="body">
-    <div class="game-over" v-if="isGameOver" @click.self="resetGame">
-      <div class="game-over-content">
-        <div class="game-over-title">游戏结束！</div>
-        <div class="game-over-score">最终得分: <span>{{ currentScore }}</span></div>
-        <div class="game-over-score">最高分: <span>{{ bestScore }}</span></div>
-        <button class="restart-btn" @click="resetGame">重新开始</button>
+    <!-- 屏幕触控按键（核心保留） -->
+    <div class="screen-controls">
+      <button class="control-btn up-btn" @touchstart.passive="() => handleControlBtn('up')" @click="handleControlBtn('up')">
+        ↑
+      </button>
+      <div class="control-middle">
+        <button class="control-btn left-btn" @touchstart.passive="() => handleControlBtn('left')" @click="handleControlBtn('left')">
+          ←
+        </button>
+        <button class="control-btn down-btn" @touchstart.passive="() => handleControlBtn('down')" @click="handleControlBtn('down')">
+          ↓
+        </button>
+        <button class="control-btn right-btn" @touchstart.passive="() => handleControlBtn('right')" @click="handleControlBtn('right')">
+          →
+        </button>
       </div>
     </div>
-  </Teleport>
+
+    <!-- 游戏结束遮罩 -->
+    <Teleport to="body">
+      <div class="game-over" v-if="isGameOver" @click.self="resetGame">
+        <div class="game-over-content">
+          <div class="game-over-title">游戏结束！</div>
+          <div class="game-over-score">最终得分: <span>{{ currentScore }}</span></div>
+          <div class="game-over-score">最高分: <span>{{ bestScore }}</span></div>
+          <button class="restart-btn" @click="resetGame">重新开始</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 
-// --------------- 常量配置（抽离，减少重复创建）---------------
+// --------------- 常量配置 ---------------
 const GRID_SIZE = 4
 const CELL_COUNT = GRID_SIZE * GRID_SIZE
-const MIN_SWIPE_DISTANCE = 20
-const TILE_STYLES_MAP = { // 缓存样式映射，避免重复计算
-  2: 'tile-2',
-  4: 'tile-4',
-  8: 'tile-8',
-  16: 'tile-16',
-  32: 'tile-32',
-  64: 'tile-64',
-  128: 'tile-128',
-  256: 'tile-256',
-  512: 'tile-512',
-  1024: 'tile-1024',
-  2048: 'tile-2048',
-  super: 'tile-super'
+const MIN_SWIPE_DISTANCE = 15
+const SWIPE_VELOCITY_THRESHOLD = 0.3
+const ANIMATION_DURATION = 80
+const KEY_DEBOUNCE_TIME = 100
+// Canvas 样式常量
+const CELL_PADDING = 6
+const CORNER_RADIUS = 4
+// 方块颜色映射
+const TILE_COLORS = {
+  2: { bg: '#eee4da', text: '#776e65', size: 18 },
+  4: { bg: '#ede0c8', text: '#776e65', size: 18 },
+  8: { bg: '#f2b179', text: '#f9f6f2', size: 18 },
+  16: { bg: '#f59563', text: '#f9f6f2', size: 18 },
+  32: { bg: '#f67c5f', text: '#f9f6f2', size: 18 },
+  64: { bg: '#f65e3b', text: '#f9f6f2', size: 18 },
+  128: { bg: '#edcf72', text: '#f9f6f2', size: 16 },
+  256: { bg: '#edcc61', text: '#f9f6f2', size: 16 },
+  512: { bg: '#edc850', text: '#f9f6f2', size: 14 },
+  1024: { bg: '#edc53f', text: '#f9f6f2', size: 14 },
+  2048: { bg: '#edc22e', text: '#f9f6f2', size: 12 },
+  super: { bg: '#3c3a32', text: '#f9f6f2', size: 12 }
 }
 
-// --------------- 响应式状态（精简，仅必要数据响应式）---------------
-const grid = ref(Array(CELL_COUNT).fill(0))
+// --------------- 响应式状态 ---------------
+const gameCanvas = ref(null)
 const currentScore = ref(0)
 const bestScore = ref(Number(localStorage.getItem('2048-best-score')) || 0)
 const isGameOver = ref(false)
-// 非响应式变量（减少Vue依赖追踪开销）
+const showKeyHint = ref(true)
+// 核心状态
+let ctx = null
+let canvasSize = 0
+let cellSize = 0
+let grid = Array(CELL_COUNT).fill(0)
+let isAnimating = false
+let lastKeyPressTime = 0
+// 滑动相关
 let touchStartX = 0
 let touchStartY = 0
-let isMoving = false // 移动锁，避免重复触发
-let keydownHandler = null // 缓存事件处理函数，方便销毁
+let touchLastX = 0
+let touchLastY = 0
+let touchStartTime = 0
+let animationFrameId = null
+let tilePositions = {}
+// 屏幕按键防抖
+let lastBtnClickTime = 0
+const BTN_DEBOUNCE_TIME = 150
 
-// --------------- 缓存计算结果（减少重复计算）---------------
-const getTileClass = (value) => {
-  if (value >= 4096) return TILE_STYLES_MAP.super
-  return TILE_STYLES_MAP[value] || TILE_STYLES_MAP[2048]
+// --------------- 按键映射表 ---------------
+const KEY_MAP = {
+  'ArrowUp': 'up',
+  'ArrowDown': 'down',
+  'ArrowLeft': 'left',
+  'ArrowRight': 'right',
+  'KeyW': 'up',
+  'KeyS': 'down',
+  'KeyA': 'left',
+  'KeyD': 'right',
+  'KeyR': 'reset',
+  'Enter': 'reset'
 }
 
-// 优化：缓存单元格样式，减少重排
-const getTileStyle = (index) => {
-  const row = Math.floor(index / GRID_SIZE)
-  const col = index % GRID_SIZE
-  // 硬件加速 + 固定定位，减少重排
-  return {
-    transform: 'translateZ(0)',
-    willChange: 'transform'
+// --------------- Canvas 初始化 ---------------
+const initCanvas = () => {
+  if (!gameCanvas.value) return
+  const canvas = gameCanvas.value
+  ctx = canvas.getContext('2d')
+
+  // 竖屏适配
+  const containerWidth = Math.min(window.innerWidth - 20, 350)
+  canvasSize = containerWidth
+  cellSize = (canvasSize - (GRID_SIZE + 1) * CELL_PADDING) / GRID_SIZE
+
+  // 高清屏适配
+  const dpr = window.devicePixelRatio || 1
+  canvas.width = canvasSize * dpr
+  canvas.height = canvasSize * dpr
+  canvas.style.width = `${canvasSize}px`
+  canvas.style.height = `${canvasSize}px`
+  ctx.scale(dpr, dpr)
+
+  resetTilePositions()
+  drawGame()
+}
+
+const resetTilePositions = () => {
+  tilePositions = {}
+  for (let i = 0; i < CELL_COUNT; i++) {
+    if (grid[i] !== 0) {
+      const row = Math.floor(i / GRID_SIZE)
+      const col = i % GRID_SIZE
+      tilePositions[i] = {
+        x: CELL_PADDING + col * (cellSize + CELL_PADDING),
+        y: CELL_PADDING + row * (cellSize + CELL_PADDING),
+        targetX: null,
+        targetY: null,
+        value: grid[i]
+      }
+    }
   }
 }
 
-// --------------- 防抖函数（优化交互流畅度）---------------
-const debounce = (fn, delay = 100) => {
-  let timer = null
-  return (...args) => {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), delay)
-  }
-}
-
-// --------------- 游戏核心逻辑（算法优化）---------------
-// 初始化游戏（优化：减少数组创建次数）
+// --------------- 游戏核心逻辑 ---------------
 const initGame = () => {
-  if (isMoving) return
-  isGameOver.value = false
+  if (isAnimating) return
+  grid = Array(CELL_COUNT).fill(0)
   currentScore.value = 0
-  // 优化：复用数组，而非重新创建
-  grid.value.fill(0)
+  isGameOver.value = false
+  isAnimating = false
 
-  // 批量生成初始方块，减少渲染次数
   generateRandomTile()
   generateRandomTile()
-  isMoving = false
+  resetTilePositions()
+  drawGame()
 }
 
-// 生成随机方块（优化：减少数组遍历次数）
 const generateRandomTile = () => {
-  // 优化：提前缓存空单元格，避免多次遍历
   const emptyCells = []
   for (let i = 0; i < CELL_COUNT; i++) {
-    if (grid.value[i] === 0) emptyCells.push(i)
+    if (grid[i] === 0) emptyCells.push(i)
   }
 
   if (emptyCells.length === 0) return false
 
   const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)]
-  grid.value[randomIndex] = Math.random() < 0.9 ? 2 : 4
+  grid[randomIndex] = Math.random() < 0.9 ? 2 : 4
+
+  const row = Math.floor(randomIndex / GRID_SIZE)
+  const col = randomIndex % GRID_SIZE
+  tilePositions[randomIndex] = {
+    x: CELL_PADDING + col * (cellSize + CELL_PADDING),
+    y: CELL_PADDING + row * (cellSize + CELL_PADDING),
+    targetX: null,
+    targetY: null,
+    value: grid[randomIndex]
+  }
+
   return true
 }
 
-// 处理水平移动（优化：减少数组拷贝/反转次数）
+const drawGame = (progress = 1) => {
+  if (!ctx) return
+
+  ctx.clearRect(0, 0, canvasSize, canvasSize)
+
+  // 绘制背景
+  drawRoundedRect(ctx, 0, 0, canvasSize, canvasSize, CORNER_RADIUS, '#bbada0')
+
+  // 绘制单元格
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const x = CELL_PADDING + col * (cellSize + CELL_PADDING)
+      const y = CELL_PADDING + row * (cellSize + CELL_PADDING)
+      drawRoundedRect(ctx, x, y, cellSize, cellSize, CORNER_RADIUS, 'rgba(238, 228, 218, 0.35)')
+    }
+  }
+
+  // 绘制方块（支持动画）
+  Object.keys(tilePositions).forEach(index => {
+    const pos = tilePositions[index]
+    if (!pos) return
+
+    let drawX = pos.x
+    let drawY = pos.y
+    if (pos.targetX !== null && pos.targetY !== null && progress < 1) {
+      drawX = pos.x + (pos.targetX - pos.x) * progress
+      drawY = pos.y + (pos.targetY - pos.y) * progress
+    }
+
+    drawTile(drawX, drawY, pos.value)
+  })
+}
+
+const drawRoundedRect = (ctx, x, y, width, height, radius, color) => {
+  ctx.beginPath()
+  ctx.moveTo(x + radius, y)
+  ctx.lineTo(x + width - radius, y)
+  ctx.arcTo(x + width, y, x + width, y + radius, radius)
+  ctx.lineTo(x + width, y + height - radius)
+  ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius)
+  ctx.lineTo(x + radius, y + height)
+  ctx.arcTo(x, y + height, x, y + height - radius, radius)
+  ctx.lineTo(x, y + radius)
+  ctx.arcTo(x, y, x + radius, y, radius)
+  ctx.closePath()
+  ctx.fillStyle = color
+  ctx.fill()
+}
+
+const drawTile = (x, y, value) => {
+  const tileStyle = TILE_COLORS[value] || TILE_COLORS.super
+  drawRoundedRect(ctx, x, y, cellSize, cellSize, CORNER_RADIUS, tileStyle.bg)
+
+  ctx.fillStyle = tileStyle.text
+  ctx.font = `bold ${tileStyle.size}px -apple-system, BlinkMacSystemFont, "Segoe UI"`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(value.toString(), x + cellSize / 2, y + cellSize / 2)
+}
+
+// 统一的移动逻辑（按键/滑动/屏幕按钮共用）
+const move = (direction) => {
+  if (isGameOver.value || isAnimating) return
+  isAnimating = true
+
+  const newGrid = [...grid]
+  let moved = false
+
+  switch(direction) {
+    case 'up': moved = processVerticalMove(-1, newGrid); break
+    case 'down': moved = processVerticalMove(1, newGrid); break
+    case 'left': moved = processHorizontalMove(-1, newGrid); break
+    case 'right': moved = processHorizontalMove(1, newGrid); break
+  }
+
+  if (moved) {
+    updateTileTargets(newGrid, direction)
+
+    // 执行动画
+    animateMove(() => {
+      grid = [...newGrid]
+      const tileGenerated = generateRandomTile()
+      resetTilePositions()
+      drawGame()
+
+      if (!tileGenerated && !canMove()) {
+        endGame()
+      }
+
+      setTimeout(() => {
+        isAnimating = false
+      }, 30)
+    })
+  } else {
+    isAnimating = false
+  }
+}
+
+const updateTileTargets = (newGrid, direction) => {
+  for (let i = 0; i < CELL_COUNT; i++) {
+    if (newGrid[i] === 0 || grid[i] !== newGrid[i]) continue
+
+    const oldRow = Math.floor(i / GRID_SIZE)
+    const oldCol = i % GRID_SIZE
+    const newIndex = newGrid.indexOf(grid[i], i)
+    if (newIndex === -1) continue
+
+    const newRow = Math.floor(newIndex / GRID_SIZE)
+    const newCol = newIndex % GRID_SIZE
+
+    tilePositions[i] = {
+      ...tilePositions[i],
+      targetX: CELL_PADDING + newCol * (cellSize + CELL_PADDING),
+      targetY: CELL_PADDING + newRow * (cellSize + CELL_PADDING)
+    }
+  }
+}
+
+const animateMove = (onComplete) => {
+  let startTime = Date.now()
+
+  const animate = () => {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / ANIMATION_DURATION, 1)
+
+    drawGame(progress)
+
+    if (progress < 1) {
+      animationFrameId = requestAnimationFrame(animate)
+    } else {
+      if (onComplete) onComplete()
+      cancelAnimationFrame(animationFrameId)
+    }
+  }
+
+  animationFrameId = requestAnimationFrame(animate)
+}
+
 const processHorizontalMove = (direction, newGrid) => {
   let moved = false
 
   for (let row = 0; row < GRID_SIZE; row++) {
     const rowStart = row * GRID_SIZE
-    const rowEnd = rowStart + GRID_SIZE
-    const rowValues = newGrid.slice(rowStart, rowEnd)
+    const rowValues = newGrid.slice(rowStart, rowStart + GRID_SIZE)
     const filtered = rowValues.filter(val => val !== 0)
 
-    if (filtered.length === 0) continue // 空行跳过
+    if (filtered.length === 0) continue
 
     const merged = []
     let i = 0
-    // 优化：一次遍历完成合并，减少循环次数
     while (i < filtered.length) {
       if (i < filtered.length - 1 && filtered[i] === filtered[i + 1]) {
         const mergedVal = filtered[i] * 2
@@ -174,13 +366,9 @@ const processHorizontalMove = (direction, newGrid) => {
       }
     }
 
-    // 优化：按需补零，避免reverse操作
     const zeros = Array(GRID_SIZE - merged.length).fill(0)
-    const newRow = direction === -1
-        ? [...merged, ...zeros]
-        : [...zeros, ...merged]
+    const newRow = direction === -1 ? [...merged, ...zeros] : [...zeros, ...merged]
 
-    // 优化：仅当行有变化时才更新
     if (JSON.stringify(rowValues) !== JSON.stringify(newRow)) {
       moved = true
       newGrid.splice(rowStart, GRID_SIZE, ...newRow)
@@ -194,12 +382,10 @@ const processHorizontalMove = (direction, newGrid) => {
   return moved
 }
 
-// 处理垂直移动（优化：转置代替旋转，减少计算）
 const processVerticalMove = (direction, newGrid) => {
   let moved = false
 
   for (let col = 0; col < GRID_SIZE; col++) {
-    // 优化：直接提取列，避免转置
     const colValues = []
     for (let row = 0; row < GRID_SIZE; row++) {
       colValues.push(newGrid[row * GRID_SIZE + col])
@@ -224,13 +410,10 @@ const processVerticalMove = (direction, newGrid) => {
     }
 
     const zeros = Array(GRID_SIZE - merged.length).fill(0)
-    const newCol = direction === -1
-        ? [...merged, ...zeros]
-        : [...zeros, ...merged]
+    const newCol = direction === -1 ? [...merged, ...zeros] : [...zeros, ...merged]
 
     if (JSON.stringify(colValues) !== JSON.stringify(newCol)) {
       moved = true
-      // 优化：直接更新列，避免转置回写
       for (let row = 0; row < GRID_SIZE; row++) {
         newGrid[row * GRID_SIZE + col] = newCol[row]
       }
@@ -244,141 +427,211 @@ const processVerticalMove = (direction, newGrid) => {
   return moved
 }
 
-// 移动逻辑（优化：加锁避免重复触发）
-const move = (direction) => {
-  if (isGameOver.value || isMoving) return
-  isMoving = true
-
-  // 优化：浅拷贝数组，减少内存占用
-  const newGrid = [...grid.value]
-  let moved = false
-
-  switch(direction) {
-    case 'up': moved = processVerticalMove(-1, newGrid); break
-    case 'down': moved = processVerticalMove(1, newGrid); break
-    case 'left': moved = processHorizontalMove(-1, newGrid); break
-    case 'right': moved = processHorizontalMove(1, newGrid); break
-  }
-
-  if (moved) {
-    // 优化：直接赋值，减少响应式触发次数
-    grid.value = newGrid
-    const tileGenerated = generateRandomTile()
-    // 优化：提前判断，减少函数调用
-    if (!tileGenerated && !canMove()) {
-      endGame()
-    }
-  }
-
-  // 优化：延迟解锁，避免快速连续操作
-  setTimeout(() => {
-    isMoving = false
-  }, 80) // 缩短延迟，提升流畅度
-}
-
-// 防抖移动（优化：缩短防抖时间）
-const debouncedMove = debounce(move, 50)
-
-// 检查是否可移动（优化：提前终止循环）
 const canMove = () => {
-  // 优化：先检查空单元格
   for (let i = 0; i < CELL_COUNT; i++) {
-    if (grid.value[i] === 0) return true
+    if (grid[i] === 0) return true
+    if ((i + 1) % GRID_SIZE !== 0 && grid[i] === grid[i + 1]) return true
+    if (i + GRID_SIZE < CELL_COUNT && grid[i] === grid[i + GRID_SIZE]) return true
   }
-
-  // 优化：一次遍历检查相邻单元格，提前终止
-  for (let i = 0; i < CELL_COUNT; i++) {
-    const val = grid.value[i]
-    // 检查右侧
-    if ((i + 1) % GRID_SIZE !== 0 && val === grid.value[i + 1]) return true
-    // 检查下侧
-    if (i + GRID_SIZE < CELL_COUNT && val === grid.value[i + GRID_SIZE]) return true
-  }
-
   return false
 }
 
-// 游戏结束（优化：批量更新）
 const endGame = () => {
   isGameOver.value = true
-  // 优化：仅一次本地存储写入
   localStorage.setItem('2048-best-score', bestScore.value.toString())
 }
 
-// 重置游戏（优化：复用初始化逻辑）
 const resetGame = () => {
   initGame()
 }
 
-// --------------- 触摸事件（优化：减少计算）---------------
+// --------------- 滑动事件处理 ---------------
 const handleTouchStart = (e) => {
-  // 优化：非响应式变量，减少Vue开销
+  // 区分是滑动还是按钮点击（避免冲突）
+  const target = e.target
+  if (target.classList.contains('control-btn')) return
+
   touchStartX = e.touches[0].clientX
   touchStartY = e.touches[0].clientY
+  touchLastX = touchStartX
+  touchLastY = touchStartY
+  touchStartTime = Date.now()
+
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
 }
 
-const handleTouchEnd = (e) => {
-  if (isGameOver.value || isMoving) return
+const handleTouchMove = (e) => {
+  if (isGameOver.value || isAnimating) return
 
-  const touchEndX = e.changedTouches[0].clientX
-  const touchEndY = e.changedTouches[0].clientY
+  touchLastX = e.touches[0].clientX
+  touchLastY = e.touches[0].clientY
 
-  // 优化：提前计算绝对值，减少重复计算
-  const deltaX = touchEndX - touchStartX
-  const deltaY = touchEndY - touchStartY
-  const absX = Math.abs(deltaX)
-  const absY = Math.abs(deltaY)
+  const deltaX = touchLastX - touchStartX
+  const deltaY = touchLastY - touchStartY
 
-  // 优化：提前过滤短距离滑动
-  if (absX < MIN_SWIPE_DISTANCE && absY < MIN_SWIPE_DISTANCE) return
-
-  // 优化：竖屏优先垂直方向，减少判断
-  const direction = absY > absX
-      ? (deltaY > 0 ? 'down' : 'up')
-      : (deltaX > 0 ? 'right' : 'left')
-
-  move(direction) // 触摸直接触发，不防抖（提升流畅度）
+  if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+    const previewProgress = Math.min(Math.abs(deltaX) + Math.abs(deltaY) / 100, 0.3)
+    drawGameWithPreview(deltaX, deltaY, previewProgress)
+  }
 }
 
-// --------------- 生命周期（优化：及时清理）---------------
-onMounted(() => {
-  // 优化：缓存事件处理函数，避免重复创建
-  keydownHandler = (e) => {
-    if (isGameOver.value || isMoving) return
-    switch(e.key) {
-      case 'ArrowUp': move('up'); break
-      case 'ArrowDown': move('down'); break
-      case 'ArrowLeft': move('left'); break
-      case 'ArrowRight': move('right'); break
-      case 'r': resetGame(); break
+const drawGameWithPreview = (deltaX, deltaY, progress) => {
+  if (!ctx) return
+
+  ctx.clearRect(0, 0, canvasSize, canvasSize)
+
+  drawRoundedRect(ctx, 0, 0, canvasSize, canvasSize, CORNER_RADIUS, '#bbada0')
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const x = CELL_PADDING + col * (cellSize + CELL_PADDING)
+      const y = CELL_PADDING + row * (cellSize + CELL_PADDING)
+      drawRoundedRect(ctx, x, y, cellSize, cellSize, CORNER_RADIUS, 'rgba(238, 228, 218, 0.35)')
     }
   }
 
-  document.addEventListener('keydown', keydownHandler)
-  initGame()
-})
+  Object.keys(tilePositions).forEach(index => {
+    const pos = tilePositions[index]
+    if (!pos) return
 
-// 优化：组件卸载/失活时清理资源
-onUnmounted(() => {
-  document.removeEventListener('keydown', keydownHandler)
-  isMoving = false
-})
+    let offsetX = 0
+    let offsetY = 0
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      offsetY = deltaY * 0.1
+    } else {
+      offsetX = deltaX * 0.1
+    }
 
-onDeactivated(() => {
-  // 组件失活时解锁，避免返回后无法操作
-  isMoving = false
-})
+    drawTile(
+        pos.x + offsetX * progress,
+        pos.y + offsetY * progress,
+        pos.value
+    )
+  })
+}
 
-onActivated(() => {
-  // 组件激活时重新渲染
-  initGame()
+const handleTouchEnd = () => {
+  if (isGameOver.value || isAnimating) return
+
+  const deltaX = touchLastX - touchStartX
+  const deltaY = touchLastY - touchStartY
+  const touchDuration = Date.now() - touchStartTime
+  const velocityX = deltaX / touchDuration
+  const velocityY = deltaY / touchDuration
+
+  const absX = Math.abs(deltaX)
+  const absY = Math.abs(deltaY)
+  const absVX = Math.abs(velocityX)
+  const absVY = Math.abs(velocityY)
+
+  if (
+      (absX < MIN_SWIPE_DISTANCE && absY < MIN_SWIPE_DISTANCE) &&
+      (absVX < SWIPE_VELOCITY_THRESHOLD && absVY < SWIPE_VELOCITY_THRESHOLD)
+  ) {
+    drawGame()
+    return
+  }
+
+  let direction = ''
+  if (absVX > absVY) {
+    direction = velocityX > 0 ? 'right' : 'left'
+  } else {
+    direction = velocityY > 0 ? 'down' : 'up'
+  }
+
+  move(direction)
+}
+
+const handleTouchCancel = () => {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
+  drawGame()
+}
+
+// --------------- 键盘按键处理 ---------------
+const handleKeyDown = (e) => {
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return
+
+  const now = Date.now()
+  if (now - lastKeyPressTime < KEY_DEBOUNCE_TIME) return
+  lastKeyPressTime = now
+
+  const key = e.code
+  const action = KEY_MAP[key]
+
+  if (!action) return
+
+  e.preventDefault()
+
+  if (action === 'reset') {
+    resetGame()
+  } else {
+    move(action)
+    // 键盘按键视觉反馈
+    const canvas = gameCanvas.value
+    if (canvas) {
+      canvas.style.transform = 'scale(0.98)'
+      setTimeout(() => {
+        canvas.style.transform = 'scale(1)'
+      }, 50)
+    }
+  }
+}
+
+// --------------- 屏幕触控按键处理（核心保留） ---------------
+const handleControlBtn = (direction) => {
+  const now = Date.now()
+  // 按键防抖
+  if (now - lastBtnClickTime < BTN_DEBOUNCE_TIME) return
+  lastBtnClickTime = now
+
+  if (isGameOver.value || isAnimating) return
+
+  // 执行移动
+  move(direction)
+
+  // 按钮按下视觉反馈
+  const btn = document.querySelector(`.${direction}-btn`)
+  if (btn) {
+    btn.classList.add('pressed')
+    setTimeout(() => {
+      btn.classList.remove('pressed')
+    }, 100)
+  }
+}
+
+// --------------- 生命周期 ---------------
+onMounted(() => {
+  nextTick(() => {
+    initCanvas()
+    initGame()
+  })
+
+  // 窗口适配
+  window.addEventListener('resize', initCanvas)
+
+  // 全局键盘监听
+  document.addEventListener('keydown', handleKeyDown)
+
+  // 移动端适配
+  if (/Mobile|Android|iOS/.test(navigator.userAgent)) {
+    showKeyHint.value = false
+  }
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', initCanvas)
+    document.removeEventListener('keydown', handleKeyDown)
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
+    isAnimating = false
+  })
 })
 </script>
 
 <style scoped>
 .game-2048-container {
   width: 100vw;
-  height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   background-color: #faf8ef;
   color: #776e65;
@@ -387,10 +640,11 @@ onActivated(() => {
   align-items: center;
   padding: 10px;
   overflow: hidden;
-  -webkit-font-smoothing: antialiased; /* 优化字体渲染 */
+  -webkit-font-smoothing: antialiased;
+  //justify-content: space-between; /* 适配按键布局 */
 }
 
-/* 游戏头部（优化：减少重排） */
+/* 游戏头部 */
 .game-header {
   width: 100%;
   max-width: 350px;
@@ -398,7 +652,7 @@ onActivated(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  flex-shrink: 0; /* 避免压缩 */
+  flex-shrink: 0;
 }
 
 .game-title {
@@ -423,110 +677,109 @@ onActivated(() => {
   padding: 5px 10px;
   font-size: 13px;
   cursor: pointer;
-  transition: background-color 0.1s ease; /* 缩短过渡时间 */
+  transition: background-color 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 游戏主区域（核心优化：硬件加速 + 减少重排） */
-.game-container {
+.reset-btn:active {
+  background-color: #9f8b77;
+}
+
+/* Canvas 容器 */
+.game-canvas {
   width: 100%;
   max-width: 350px;
   aspect-ratio: 1/1;
-  background-color: #bbada0;
   border-radius: 8px;
-  padding: 8px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: 6px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   margin-bottom: 20px;
-  position: relative;
-  transform: translateZ(0); /* 硬件加速 */
-  will-change: contents; /* 提示浏览器优化 */
-  touch-action: none; /* 禁用浏览器默认触摸行为 */
-}
-
-.cell {
-  background-color: rgba(238, 228, 218, 0.35);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden; /* 避免溢出重绘 */
-}
-
-/* 数字方块（优化：硬件加速 + 减少重绘） */
-.tile {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 18px;
-  transition: transform 0.08s ease-out; /* 缩短过渡时间，更流畅 */
-  z-index: 1;
-  transform: translateZ(0); /* 硬件加速 */
-  backface-visibility: hidden; /* 避免重绘 */
-}
-
-/* 方块样式（优化：精简选择器） */
-.tile-2 { background: #eee4da; color: #776e65; }
-.tile-4 { background: #ede0c8; color: #776e65; }
-.tile-8 { background: #f2b179; color: #f9f6f2; }
-.tile-16 { background: #f59563; color: #f9f6f2; }
-.tile-32 { background: #f67c5f; color: #f9f6f2; }
-.tile-64 { background: #f65e3b; color: #f9f6f2; }
-.tile-128 { background: #edcf72; color: #f9f6f2; font-size: 16px; }
-.tile-256 { background: #edcc61; color: #f9f6f2; font-size: 16px; }
-.tile-512 { background: #edc850; color: #f9f6f2; font-size: 14px; }
-.tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 14px; }
-.tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 12px; }
-.tile-super { background: #3c3a32; color: #f9f6f2; font-size: 12px; }
-
-/* 控制按钮（优化：减少hover重绘） */
-.controls {
-  width: 100%;
-  max-width: 300px;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  cursor: pointer;
+  transition: transform 0.05s ease;
   flex-shrink: 0;
 }
 
+/* 按键提示 */
+.key-hint {
+  font-size: 12px;
+  color: #776e65;
+  margin-bottom: 15px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* 屏幕触控按键（核心样式） */
+.screen-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 200px;
+}
+
+.control-middle {
+  display: flex;
+  gap: 8px;
+}
+
 .control-btn {
-  width: 65px;
-  height: 65px;
+  width: 60px;
+  height: 60px;
   border: none;
   border-radius: 8px;
   background-color: #8f7a66;
   color: white;
   font-size: 24px;
+  font-weight: bold;
   cursor: pointer;
+  transition: all 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translateZ(0); /* 硬件加速 */
-  transition: background-color 0.1s ease; /* 缩短过渡 */
-  -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */
 }
 
-.control-btn:active {
-  background-color: #9f8b77; /* 用active代替hover，减少移动端重绘 */
+/* 按钮按下效果 */
+.control-btn.pressed {
+  background-color: #6b5a4b;
+  transform: scale(0.95);
 }
 
-.vertical-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* 响应式按钮大小 */
+@media (max-width: 375px) {
+  .control-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
 }
 
-/* 游戏结束遮罩（优化：硬件加速） */
+@media (max-height: 600px) {
+  .control-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 18px;
+  }
+  .game-canvas {
+    max-width: 280px;
+    margin-bottom: 10px;
+  }
+  .game-title {
+    font-size: 24px;
+  }
+  .key-hint {
+    margin-bottom: 8px;
+  }
+  .screen-controls {
+    margin-bottom: 10px;
+  }
+}
+
+/* 游戏结束遮罩 */
 .game-over {
   position: fixed;
   top: 0;
@@ -538,7 +791,7 @@ onActivated(() => {
   align-items: center;
   justify-content: center;
   z-index: 10;
-  transform: translateZ(0); /* 硬件加速 */
+  transform: translateZ(0);
 }
 
 .game-over-content {
@@ -547,7 +800,12 @@ onActivated(() => {
   border-radius: 8px;
   text-align: center;
   min-width: 250px;
-  transform: scale(1.05); /* 轻微缩放，提升视觉流畅度 */
+  animation: popIn 0.2s ease-out;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .game-over-title {
@@ -569,24 +827,22 @@ onActivated(() => {
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 小屏适配（优化：媒体查询精简） */
-@media (max-height: 600px) {
-  .game-container {
-    max-width: 280px;
+.restart-btn:active {
+  background-color: #9f8b77;
+}
+
+@media (max-width: 480px) {
+  .game-2048-container {
+    padding: 8px;
   }
-  .control-btn {
-    width: 55px;
-    height: 55px;
-    font-size: 20px;
-  }
-  .game-title {
-    font-size: 24px;
+  .game-header {
+    margin-bottom: 10px;
   }
 }
 
-/* 优化：禁用文本选择，减少不必要的交互 */
 :deep(*) {
   user-select: none;
   -webkit-user-select: none;
