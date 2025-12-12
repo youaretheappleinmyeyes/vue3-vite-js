@@ -91,8 +91,8 @@
           >↻ 重开</button>
           <button
               @click="resetSettings"
-              :class="['btn btn-gray', { 'btn-disabled': isPlaying }]"
           >↺ 重置</button>
+<!--              :class="['btn btn-gray', { 'btn-disabled': isPlaying }]"-->
         </div>
       </div>
 
@@ -370,15 +370,13 @@ const closeModal = () => {
 
 // 开始游戏
 const startGame = () => {
-  if (isPlaying.value) return;
+  // if (isPlaying.value) return;
 
   // 初始化音效
   SoundManager.init();
 
   // 重置游戏状态
-  isPlaying.value = true;
-  score.value = 0;
-  revealedCards.value.clear();
+  resetState(true)
 
   // 生成炸弹位置
   bombs.value = generateBombPositions(Math.min(bombCount.value, totalCards.value - 1));
@@ -407,11 +405,21 @@ const restartGame = () => {
   startGame();
 };
 
+// 重置游戏状态
+const resetState = (is) => {
+  isPlaying.value = is;
+  score.value = 0;
+  revealedCards.value.clear();
+};
+
 // 重置设置
 const resetSettings = () => {
+  // createGameCards();
   gridRows.value = 5;
   gridCols.value = 5;
   bombCount.value = 5;
+  cards.value = [];
+  resetState(false);
 };
 
 // 调整行数/列数/炸弹数
