@@ -219,7 +219,7 @@ const SoundManager = {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
   },
-
+  // 生成指定频率、波形、时长的声音
   playTone(frequencies, duration = 0.3, type = 'sine', volumeMultiplier = 1) {
     this.init();
 
