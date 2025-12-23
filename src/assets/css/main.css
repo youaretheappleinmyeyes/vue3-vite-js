@@ -1,6 +1,7 @@
 @import 'base.css';
 @import "box.less";
 @import "vantRoot.less";
+@import "preset.less";
 #app {
 
 }

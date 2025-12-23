@@ -14,11 +14,13 @@
   --lgc-11: linear-gradient(to right, #f85414, #d3c5fa);
   --lgc-12: linear-gradient(to right, #98be2c, #ff9c05);
   --lgc-13: linear-gradient(to right, #2ad4af, #ece8e5);
+  --lgc-14: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
 }
 
 @media screen {
 
 }
+
 /*渐变边框跑马灯样式*/
 @borderColorGradient-radius: 8px;
 .border-color-gradient {
@@ -78,15 +80,17 @@
 .line-color-gradient {
 
 }
+
 /* 水平滚动彩色条容器 */
 .color-scroll-horizontal {
   width: 100%;
   height: 10px;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
   position: relative;
 }
+
 /* 彩色条核心样式 - 水平方向 */
 .color-strip-horizontal {
   position: absolute;
@@ -95,25 +99,24 @@
   width: 340%; /* 宽度设为3倍以实现完整滚动效果 */
   height: 100%;
   /* 渐变颜色组 - 可自定义调整颜色和顺序 */
-  background: linear-gradient(
-    315deg,
-    #ff0000, #ff4d00, #ff9900, #ffd400,
-    #ffff00, #b3ff00, #66ff00, #00ff00,
-    #00ff66, #00ffff, #0066ff, #0000ff,
-    #6600ff, #b300ff, #ff00ff, #ff0099,
-    #ff004d,
-    #ff0000, #ff4d00, #ff9900, #ffd400,
-    #ffff00, #b3ff00, #66ff00, #00ff00,
-    #00ff66, #00ffff, #0066ff, #0000ff,
-    #6600ff, #b300ff, #ff00ff, #ff0099,
-    #ff004d,
-  );
+  background: linear-gradient(315deg,
+  #ff0000, #ff4d00, #ff9900, #ffd400,
+  #ffff00, #b3ff00, #66ff00, #00ff00,
+  #00ff66, #00ffff, #0066ff, #0000ff,
+  #6600ff, #b300ff, #ff00ff, #ff0099,
+  #ff004d,
+  #ff0000, #ff4d00, #ff9900, #ffd400,
+  #ffff00, #b3ff00, #66ff00, #00ff00,
+  #00ff66, #00ffff, #0066ff, #0000ff,
+  #6600ff, #b300ff, #ff00ff, #ff0099,
+  #ff004d,);
   /* 流畅滚动动画 */
   animation: scrollHorizontal 12s linear infinite;
   /* 性能优化：禁止事件干扰 */
   user-select: none;
   pointer-events: none;
 }
+
 /* 水平滚动动画关键帧 */
 @keyframes scrollHorizontal {
   0% {
@@ -123,10 +126,12 @@
     transform: translateX(-51.5%); /* 完美无缝循环 */
   }
 }
+
 /* 悬停效果 - 暂停动画并增加亮度 */
-.color-scroll-horizontal:hover .color-strip-horizontal{
+.color-scroll-horizontal:hover .color-strip-horizontal {
   //animation-play-state: paused;
   //filter: brightness(1.2);
   //transition: filter 0.3s ease;
 }
+
 /* --END-- 旋转彩色分割线 */

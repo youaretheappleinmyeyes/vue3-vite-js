@@ -6,7 +6,12 @@ const router = createRouter({
   routes: [
     {
       path:'/',
-      redirect:'/main',
+      redirect:'/welcome',
+    },
+    {
+      path:'/welcome',
+      name:'welcome',
+      component:()=>import('../views/welcome/index.vue'),
     },
     {
       path:'/main',
@@ -20,11 +25,21 @@ const router = createRouter({
           component:()=>import('../views/home/index.vue')
         },
         {
+          path:'/gameList',
+          name:"gameList",
+          component:()=>import('../views/game/gameList.vue')
+        },
+        {
           path: '/myResume',
           name: 'myResume',
           component:()=>import('../views/myResume/index.vue')
         }
       ]
+    },
+    {
+      path:'/gameView/:gameName',
+      name:"gameView",
+      component:()=>import('../views/game/gameView.vue')
     },
     {
       path: '/homev',

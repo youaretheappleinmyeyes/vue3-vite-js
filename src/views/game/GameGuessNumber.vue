@@ -1,3 +1,6 @@
+<!--
+猜数字小游戏
+-->
 <template>
   <div class="guess-number-game">
     <h2>猜数字小游戏</h2>
